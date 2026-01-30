@@ -1,80 +1,14 @@
-const { Sequelize, DataTypes } = require('sequelize')
+const { sequelize, user, petition, response } = require('./bd');
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const app = express();
+const port = 3000;
+const _dirname = path.resolve();
 
-const sequelize = new Sequelize(
-    'uxia5',
-    'uxia_user',
-    '1234',
-     {
-        host: 'localhost',
-        dialect: 'mysql',
-        logging: true
-     }
-)
+app.use(express.json()); 
 
-// Generando las tablas
-const user = sequelize.define('user', {
-    nickname: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    telephone: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-    },
-    email: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    role: {
-        type: DataTypes.ENUM('normal', 'admin'),
-        allowNull: false
-    }
-})
-
-const petition = sequelize.define('petition', {
-    prompt: {
-        type: DataTypes.TEXT,
-        allowNull: false
-    },
-    images: {
-        type: DataTypes.ARRAY(DataTypes.TEXT),
-        allowNull: true
-    },
-    stream: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false
-    },
-    model: {
-        type: DataTypes.STRING,
-        allowNull: false
-    }
-})
-
-const response = sequelize.define('response', {
-    status: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    message: {
-        type: DataTypes.TEXT,
-        allowNull: false
-    },
-    data: {
-        type: DataTypes.JSON,
-        allowNull: false
-    }
-})
-
-// Generando las relaciones
-
-// user petition 1-n
-user.hasMany(petition);
-petition.belongsTo(user);
-
-// petition response 1-1
-petition.hasOne(response);
-response.belongsTo(petition);
-
+app.use(express.urlencoded({ extended: true }));
 
 async function checkDb() {
   try {
@@ -85,6 +19,53 @@ async function checkDb() {
   }
 }
 
-checkDb();
+// Autenticación de usuario administrador
+app.post('/api/admin/usuaris/login', async (req, res) => {
+    console.log(req.body);
+    const { email, password } = req.body;
 
-module.exports = { sequelize, user, petition, response };
+    try {
+        const adminUser = await user.findOne({ where: { email, role: 'admin' }});
+
+        if (!adminUser) {
+            return res.status(401).json(
+                { 
+                    status: "Error",
+                    message: 'Invalid credentials',
+                    data: {}
+                }
+            );
+        }
+
+        // Comprobando contraseña
+        if (adminUser.password === password) {
+            res.status(200).json(
+                { 
+                    status: "OK",
+                    message: 'User successfully authenticated',
+                    data: {}
+                }
+            );
+        }
+    } catch (error) {
+        console.error('Error during admin login:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Activar el servidor
+const httpServer = app.listen(port, appListen)
+function appListen () {
+    console.log(`Example app listening on: http://0.0.0.0:${port}`);
+
+}
+
+
+// Aturar el servidor correctament 
+process.on('SIGTERM', shutDown);
+process.on('SIGINT', shutDown);
+function shutDown() {
+    console.log('Received kill signal, shutting down gracefully');
+    httpServer.close();
+    process.exit(0);
+}
