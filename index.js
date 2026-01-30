@@ -47,9 +47,22 @@ app.post('/api/admin/usuaris/login', async (req, res) => {
                 }
             );
         }
+        else {
+            res.status(401).json(
+                { 
+                    status: "Error",
+                    message: 'Invalid credentials',
+                    data: {}
+                }
+            );
+        }
     } catch (error) {
         console.error('Error during admin login:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json(
+            { 
+                status: "Error",
+                message: 'Internal server error' 
+            });
     }
 });
 
