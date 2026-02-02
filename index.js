@@ -5,6 +5,7 @@ const path = require("path");
 const app = express();
 const port = 3000;
 const _dirname = path.resolve();
+const bcrypt = require('bcrypt');
 
 app.use(express.json()); 
 
@@ -38,7 +39,7 @@ app.post('/api/admin/usuaris/login', async (req, res) => {
         }
 
         // Comprobando contraseña
-        if (adminUser.password === password) {
+        if (bcrypt.compareSync(password, adminUser.password)) {
             res.status(200).json(
                 { 
                     status: "OK",
