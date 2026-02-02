@@ -1,15 +1,18 @@
-const { sequelize, user, petition, response } = require('./bd');
 const express = require("express");
-const fs = require("fs");
+const cors = require('cors');
 const path = require("path");
-const app = express();
-const port = 80;
-const _dirname = path.resolve();
 const bcrypt = require('bcrypt');
+const { sequelize, user, petition, response } = require('./bd');
+
+const app = express();
+const port = 3000;
+
+// --- 1. MIDDLEWARES ---
+app.use(cors()); 
 
 app.use(express.json()); 
-
 app.use(express.urlencoded({ extended: true }));
+
 
 async function checkDb() {
   try {
@@ -21,7 +24,16 @@ async function checkDb() {
 }
 
 app.get('/', (req, res) => {
-    res.send('Hello World!');
+    res.send('Hello Worldsdsdssdsdd!');
+});
+
+app.get('/test', (req, res) => {
+    res.send('testtesttest!');
+});
+
+app.post('/api/test', (req, res) => {
+    console.log(req.body);
+    res.json({ message: 'Test received', data: req.body });
 });
 
 // Autenticación de usuario administrador
@@ -70,6 +82,7 @@ app.post('/api/admin/usuaris/login', async (req, res) => {
             });
     }
 });
+
 
 // Activar el servidor
 const httpServer = app.listen(port, appListen)

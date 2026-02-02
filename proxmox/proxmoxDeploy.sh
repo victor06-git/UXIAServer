@@ -24,7 +24,7 @@ if [[ ! -f "$RSA_PATH" ]]; then
   exit 1
 fi
 
-cd ../..
+cd ..
 rm -f "$ZIP_NAME"
 zip -r "$ZIP_NAME" . -x "proxmox/*" "node_modules/*" "data/*" ".gitignore"
 
