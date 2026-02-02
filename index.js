@@ -20,6 +20,10 @@ async function checkDb() {
   }
 }
 
+app.get('/', (req, res) => {
+    res.send('Hello World!');
+});
+
 // Autenticación de usuario administrador
 app.post('/api/admin/usuaris/login', async (req, res) => {
     console.log(req.body);
