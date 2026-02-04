@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require('cors');
 const path = require("path");
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const { sequelize, user, petition, response } = require('./bd');
 
 const app = express();
@@ -13,6 +14,9 @@ app.use(cors());
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true }));
 
+const generarToken = () => {
+  return crypto.randomBytes(32).toString('hex');
+};
 
 async function checkDb() {
   try {
@@ -60,7 +64,9 @@ app.post('/api/admin/usuaris/login', async (req, res) => {
                 { 
                     status: "OK",
                     message: 'User successfully authenticated',
-                    data: {}
+                    data: {
+                        token: generarToken(),
+                    }
                 }
             );
         }
