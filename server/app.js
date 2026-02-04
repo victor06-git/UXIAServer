@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require("path");
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const { sequelize, user, petition, response } = require('./bd');
+const { sequelize, user, petition, response, image } = require('./bd');
 
 const app = express();
 const port = 3000;
@@ -38,6 +38,29 @@ app.get('/test', (req, res) => {
 app.post('/api/test', (req, res) => {
     console.log(req.body);
     res.json({ message: 'Test received', data: req.body });
+});
+
+
+app.post('/api/analitzar-imatge', (req, res) => {
+    console.log(req.body);
+
+    var base64 = req.body.images[0];
+
+    // Guardando imagen en la base de datos
+    image.create({
+        base64: base64
+    }).then(() => {
+        console.log('Image saved to database');
+    }).catch((error) => {
+        console.error('Error saving image to database:', error);
+    });
+    sequelize.sync();
+
+
+
+    res.json({ 
+        message: 'Image analysis received', 
+        data: req.body });
 });
 
 // Autenticación de usuario administrador

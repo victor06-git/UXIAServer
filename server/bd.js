@@ -72,6 +72,13 @@ const response = sequelize.define('response', {
     }
 })
 
+const image = sequelize.define('image', {
+    base64: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    }
+})
+
 // Generando las relaciones
 
 // user petition 1-n
@@ -82,5 +89,9 @@ petition.belongsTo(user);
 petition.hasOne(response);
 response.belongsTo(petition);
 
+// petition image 1-n
+petition.hasMany(image);
+image.belongsTo(petition);
 
-module.exports = { sequelize, user, petition, response };
+
+module.exports = { sequelize, user, petition, response, image };
