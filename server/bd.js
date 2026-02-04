@@ -74,7 +74,7 @@ const response = sequelize.define('response', {
 
 const image = sequelize.define('image', {
     base64: {
-        type: DataTypes.TEXT,
+        type: DataTypes.TEXT('long'),
         allowNull: false
     }
 })

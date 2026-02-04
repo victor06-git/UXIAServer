@@ -42,7 +42,11 @@ app.post('/api/test', (req, res) => {
 
 
 app.post('/api/analitzar-imatge', (req, res) => {
+    if (!req.body.images || !req.body.images[0]) {
+        return res.status(400).json({ error: "No se enviaron imágenes" });
+    }
     console.log(req.body);
+    
 
     var base64 = req.body.images[0];
 
