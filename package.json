@@ -23,6 +23,7 @@
     "crypto": "^1.0.1",
     "express": "^5.2.1",
     "mysql2": "^3.16.2",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "winston": "^3.19.0"
   }
 }

@@ -43,10 +43,6 @@ const petition = sequelize.define('petition', {
         type: DataTypes.TEXT,
         allowNull: false
     },
-    images: {
-        type: DataTypes.ARRAY(DataTypes.TEXT),
-        allowNull: true
-    },
     stream: {
         type: DataTypes.BOOLEAN,
         allowNull: false
@@ -72,9 +68,20 @@ const response = sequelize.define('response', {
     }
 })
 
-const image = sequelize.define('image', {
+const img = sequelize.define('img', {
     base64: {
         type: DataTypes.TEXT('long'),
+        allowNull: false
+    }
+})
+
+const token = sequelize.define('token', {
+    value: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    email: {
+        type: DataTypes.STRING,
         allowNull: false
     }
 })
@@ -90,8 +97,11 @@ petition.hasOne(response);
 response.belongsTo(petition);
 
 // petition image 1-n
-petition.hasMany(image);
-image.belongsTo(petition);
+petition.hasMany(img);
+img.belongsTo(petition);
 
+// token user 1-1
+token.belongsTo(user);
+user.hasOne(token);
 
-module.exports = { sequelize, user, petition, response, image };
+module.exports = { sequelize, user, petition, response, img, token };
