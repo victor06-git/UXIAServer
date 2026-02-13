@@ -30,11 +30,16 @@ const authenticateToken = async (req, res, next) => {
         // 2. Buscar el token en la base de datos
         const foundToken = await token.findOne({ 
             where: { value: tokenValue },
-            include: ['user'] // Asegúrate de que la asociación esté bien definida
+            include: ['user'] 
         });
 
         if (!foundToken) {
-            return res.status(403).json({ error: 'Token inválido o expirado.' });
+            return res.status(403).json(
+                { 
+                    status: "ERROR",
+                    message: "API_KEY invàlida",
+                    "data": null
+                });
         }
 
         req.user = foundToken.user;
@@ -151,8 +156,15 @@ app.post('/api/analitzar-imatge', authenticateToken, (req, res) => {
     });
 
     res.json({ 
-        message: 'Análisis recibido y autenticado', 
-        userEmail: req.user.email 
+        status: "OK",
+        message: "Imatges processades correctament",
+        data: {
+            description: "Aquesta imatge es molt bonica",
+
+            tags: ["bonica", "foto", "imatge"],
+            processingTime: "2.3s",
+            model_used: "qwen2.5vl:7b"
+        }
     });
 });
 
