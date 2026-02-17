@@ -138,17 +138,16 @@ app.post('/api/test', (req, res) => {
 //         data: req.body });
 // });
 
-app.post('/api/analitzar-imatge', authenticateToken, (req, res) => {
+app.post('/api/analitzar-imatge', (req, res) => {
     if (!req.body.images || !req.body.images[0]) {
         return res.status(400).json({ error: "No se enviaron imágenes" });
     }
 
     const base64 = req.body.images[0];
 
-    // Ahora podemos saber qué usuario está subiendo la imagen gracias al middleware
     img.create({
         base64: base64,
-        userId: req.user.id // <-- Relación automática
+
     }).then(() => {
         logger.info(`Image saved for user: ${req.user.email}`);
     }).catch((error) => {
@@ -159,9 +158,9 @@ app.post('/api/analitzar-imatge', authenticateToken, (req, res) => {
         status: "OK",
         message: "Imatges processades correctament",
         data: {
-            description: "Aquesta imatge es molt bonica",
+            description: "Aquesta imatge sembla ser d'una persona amb orelles de gos i cua, possiblement un furro.",
 
-            tags: ["bonica", "foto", "imatge"],
+            tags: ["gos", "furro", "persona"],
             processingTime: "2.3s",
             model_used: "qwen2.5vl:7b"
         }
