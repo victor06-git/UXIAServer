@@ -1,0 +1,29 @@
+{
+  "name": "uxiaserver",
+  "version": "1.0.0",
+  "description": "Servidor Node/Sequelize/MySQL projecte UXIA",
+  "homepage": "https://github.com/victor06-git/UXIAServer#readme",
+  "bugs": {
+    "url": "https://github.com/victor06-git/UXIAServer/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/victor06-git/UXIAServer.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "crypto": "^1.0.1",
+    "express": "^5.2.1",
+    "mysql2": "^3.16.2",
+    "sequelize": "^6.37.7",
+    "winston": "^3.19.0"
+  }
+}
