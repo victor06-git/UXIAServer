@@ -155,7 +155,7 @@ app.post('/api/analitzar-imatge', async (req, res) => {
                 prompt: "Analitza aquesta imatge...",
                 stream: false,
                 model: "qwen2.5vl:7b",
-                userId: req.body.userId // ¡No te olvides de asociar el usuario si lo tienes!
+                userId: req.body.userId
             });
 
             // 2. CREAR LA IMAGEN ASOCIADA
@@ -163,7 +163,7 @@ app.post('/api/analitzar-imatge', async (req, res) => {
             const nuevaImagen = await img.create({
                 base64: base64,
                 tags: tagsString,
-                petitionId: nuevaPeticion.id // Sequelize creó esta columna por el hasMany
+                petitionId: nuevaPeticion.id 
             });
 
             // 3. CREAR LA RESPUESTA ASOCIADA
@@ -176,7 +176,7 @@ app.post('/api/analitzar-imatge', async (req, res) => {
                     model_used: ollamaRaw.model,
                     total_duration: ollamaRaw.total_duration
                 },
-                petitionId: nuevaPeticion.id // Relacionamos la respuesta con la petición
+                petitionId: nuevaPeticion.id
             });
 
             logger.info('Todo guardado correctamente y relacionado');
@@ -185,25 +185,6 @@ app.post('/api/analitzar-imatge', async (req, res) => {
             logger.error('Error parseando JSON o guardando en DB:', parseError);
             finalDescription = ollamaRaw.response;
         }
-
-        // Creando un registro de la petición y respuesta
-        // await petition.create({
-        //     prompt: "Analitza aquesta imatge i respon estrictament amb aquest format JSON, sense markdown ni text addicional: {\"data\": {\"description\": \"...\", \"tags\": [\"tag1\", \"tag2\"]}}",
-        //     stream: false,
-        //     model: "qwen2.5vl:7b",
-        //     image: img.id // Asignamos el ID de la imagen recién creada
-        // });
-
-        // await response.create({
-        //     status: 200,
-        //     message: "Imatges processades correctament",
-        //     data: {
-        //         description: finalDescription,
-        //         tags: finalTags,
-        //         model_used: ollamaRaw.model,
-        //         total_duration: ollamaRaw.total_duration
-        //     }
-        // });
 
         // 3. Respuesta final al cliente
         res.json({ 
