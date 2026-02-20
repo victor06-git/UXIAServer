@@ -50,7 +50,7 @@ const petition = sequelize.define('petition', {
     model: {
         type: DataTypes.STRING,
         allowNull: false
-    }
+    },
 })
 
 const response = sequelize.define('response', {

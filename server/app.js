@@ -84,7 +84,7 @@ async function checkDb() {
 async function startApp() {
     try {
         // 2. Sincronizamos ANTES de que el servidor acepte peticiones
-        await sequelize.sync(); 
+        await sequelize.sync({force: true}); 
         logger.info('Tablas verificadas/creadas correctamente');
 
         // 3. Ahora que las tablas existen, encendemos el servidor
@@ -124,7 +124,7 @@ app.post('/api/analitzar-imatge', async (req, res) => {
     try {
         
 
-        const response = await fetch('http://192.168.1.24:11434/api/generate', {
+        const respons = await fetch('http://192.168.1.24:11434/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -135,36 +135,75 @@ app.post('/api/analitzar-imatge', async (req, res) => {
             })
         });
 
-        const ollamaRaw = await response.json();
+        const ollamaRaw = await respons.json();
         
         // --- PROCESAMIENTO SEGURO DE LA RESPUESTA ---
         let finalDescription = "No s'ha podido generar una descripción.";
         let finalTags = [];
 
         try {
-            // 1. Limpiando respuesta
             const cleanResponse = ollamaRaw.response.replace(/```json|```/g, '').trim();
             const jsonResponse = JSON.parse(cleanResponse);
             
-            // 2. Asignamos valores desde el JSON parseado
             finalDescription = jsonResponse.data?.description || finalDescription;
             finalTags = jsonResponse.data?.tags || [];
+            const tagsString = finalTags.join(',');
 
-
-            // Guardando imagen con tags en la base de datos
-            img.create({
-                base64: base64
-            }).then(() => {
-                logger.info('Image saved to database with tags');
-            }).catch((error) => {
-                logger.error('Error saving image to database:', error);
+            // 1. CREAR LA PETICIÓN PRIMERO
+            // Necesitamos este ID para los demás registros
+            const nuevaPeticion = await petition.create({
+                prompt: "Analitza aquesta imatge...",
+                stream: false,
+                model: "qwen2.5vl:7b",
+                userId: req.body.userId // ¡No te olvides de asociar el usuario si lo tienes!
             });
 
+            // 2. CREAR LA IMAGEN ASOCIADA
+            // Usamos el ID de la petición recién creada (nuevaPeticion.id)
+            const nuevaImagen = await img.create({
+                base64: base64,
+                tags: tagsString,
+                petitionId: nuevaPeticion.id // Sequelize creó esta columna por el hasMany
+            });
+
+            // 3. CREAR LA RESPUESTA ASOCIADA
+            await response.create({
+                status: 200,
+                message: "Imatges processades correctament",
+                data: {
+                    description: finalDescription,
+                    tags: finalTags,
+                    model_used: ollamaRaw.model,
+                    total_duration: ollamaRaw.total_duration
+                },
+                petitionId: nuevaPeticion.id // Relacionamos la respuesta con la petición
+            });
+
+            logger.info('Todo guardado correctamente y relacionado');
+
         } catch (parseError) {
-            logger.error('Error parseando JSON de la IA, usando respuesta en bruto:', parseError);
-            // Si falla el parseo, al menos guardamos el texto plano
+            logger.error('Error parseando JSON o guardando en DB:', parseError);
             finalDescription = ollamaRaw.response;
         }
+
+        // Creando un registro de la petición y respuesta
+        // await petition.create({
+        //     prompt: "Analitza aquesta imatge i respon estrictament amb aquest format JSON, sense markdown ni text addicional: {\"data\": {\"description\": \"...\", \"tags\": [\"tag1\", \"tag2\"]}}",
+        //     stream: false,
+        //     model: "qwen2.5vl:7b",
+        //     image: img.id // Asignamos el ID de la imagen recién creada
+        // });
+
+        // await response.create({
+        //     status: 200,
+        //     message: "Imatges processades correctament",
+        //     data: {
+        //         description: finalDescription,
+        //         tags: finalTags,
+        //         model_used: ollamaRaw.model,
+        //         total_duration: ollamaRaw.total_duration
+        //     }
+        // });
 
         // 3. Respuesta final al cliente
         res.json({ 
@@ -177,6 +216,8 @@ app.post('/api/analitzar-imatge', async (req, res) => {
                 total_duration: ollamaRaw.total_duration
             }
         });
+
+        
 
     } catch (error) {
         logger.error('Error procesando imagen:', error);
