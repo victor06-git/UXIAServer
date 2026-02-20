@@ -72,6 +72,10 @@ const img = sequelize.define('img', {
     base64: {
         type: DataTypes.TEXT('long'),
         allowNull: false
+    },
+    tags: {
+        type: DataTypes.STRING, // ulleras,persona,cara,fosc
+        allowNull: false
     }
 })
 

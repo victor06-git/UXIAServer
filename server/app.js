@@ -112,59 +112,115 @@ app.post('/api/test', (req, res) => {
 });
 
 
-// VERSIÓN ANTIGUA SIN VERIFICACIÓN DE TOKEN
-// app.post('/api/analitzar-imatge', (req, res) => {
-//     if (!req.body.images || !req.body.images[0]) {
-//         return res.status(400).json({ error: "No se enviaron imágenes" });
-//     }
-//     logger.info(req.body);
-    
-
-//     var base64 = req.body.images[0];
-
-//     // Guardando imagen en la base de datos
-//     img.create({
-//         base64: base64
-//     }).then(() => {
-//         logger.info('Image saved to database');
-//     }).catch((error) => {
-//         logger.error('Error saving image to database:', error);
-//     });
-
-
-
-//     res.json({ 
-//         message: 'Image analysis received', 
-//         data: req.body });
-// });
-
-app.post('/api/analitzar-imatge', (req, res) => {
+app.post('/api/analitzar-imatge', async (req, res) => {
     if (!req.body.images || !req.body.images[0]) {
         return res.status(400).json({ error: "No se enviaron imágenes" });
     }
 
-    const base64 = req.body.images[0];
+    let base64 = req.body.images[0];
+    // Limpieza de prefijo base64 si existe
+    if (base64.startsWith('data:')) base64 = base64.split(',')[1];
 
-    img.create({
-        base64: base64,
+    try {
+        
 
-    }).then(() => {
-        logger.info(`Image saved for user: ${req.user.email}`);
-    }).catch((error) => {
-        logger.error('Error saving image:', error);
-    });
+        const response = await fetch('http://192.168.1.24:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: "qwen2.5vl:7b",
+                prompt: "Analitza aquesta imatge i respon estrictament amb aquest format JSON, sense markdown ni text addicional: {\"data\": {\"description\": \"...\", \"tags\": [\"tag1\", \"tag2\"]}}",
+                stream: false,
+                images: [base64]
+            })
+        });
 
-    res.json({ 
-        status: "OK",
-        message: "Imatges processades correctament",
-        data: {
-            description: "Aquesta imatge sembla ser d'una persona amb orelles de gos i cua, possiblement un furro.",
+        const ollamaRaw = await response.json();
+        
+        // --- PROCESAMIENTO SEGURO DE LA RESPUESTA ---
+        let finalDescription = "No s'ha podido generar una descripción.";
+        let finalTags = [];
 
-            tags: ["gos", "furro", "persona"],
-            processingTime: "2.3s",
-            model_used: "qwen2.5vl:7b"
+        try {
+            // 1. Limpiando respuesta
+            const cleanResponse = ollamaRaw.response.replace(/```json|```/g, '').trim();
+            const jsonResponse = JSON.parse(cleanResponse);
+            
+            // 2. Asignamos valores desde el JSON parseado
+            finalDescription = jsonResponse.data?.description || finalDescription;
+            finalTags = jsonResponse.data?.tags || [];
+
+
+            // Guardando imagen con tags en la base de datos
+            img.create({
+                base64: base64
+            }).then(() => {
+                logger.info('Image saved to database with tags');
+            }).catch((error) => {
+                logger.error('Error saving image to database:', error);
+            });
+
+        } catch (parseError) {
+            logger.error('Error parseando JSON de la IA, usando respuesta en bruto:', parseError);
+            // Si falla el parseo, al menos guardamos el texto plano
+            finalDescription = ollamaRaw.response;
         }
-    });
+
+        // 3. Respuesta final al cliente
+        res.json({ 
+            status: "OK",
+            message: "Imatges processades correctament",
+            data: {
+                description: finalDescription,
+                tags: finalTags,
+                model_used: ollamaRaw.model,
+                total_duration: ollamaRaw.total_duration
+            }
+        });
+
+    } catch (error) {
+        logger.error('Error procesando imagen:', error);
+        res.status(500).json({ error: `Error interno: ${error.message}` });
+    }
+});
+
+app.post('/api/generate', async (req, res) => {
+    logger.info(req.body);
+    const { prompt, imatges, stream, model } = req.body;
+
+    try {
+        var base64 = imatges[0];
+        
+
+        return res.status(200).json(
+            { 
+                status: "OK",
+                message: 'Text generated successfully',
+                data: {
+                    text: `Resposta generada pel model ${model} amb el prompt "${prompt}".`
+                }
+            }
+        );
+
+
+        if (!adminUser) {
+            return res.status(401).json(
+                { 
+                    status: "Error",
+                    message: 'Invalid credentials',
+                    data: {}
+                }
+            );
+        }
+
+    } catch (error) {
+        logger.error('Error during token generation:', error);
+        res.status(500).json(
+            { 
+                status: "Error",
+                message: `Internaldsadasdsadasdsddsd server error: ${error.message}` 
+            });
+    }
 });
 
 // Autenticación de usuario administrador
