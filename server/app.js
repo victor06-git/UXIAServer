@@ -366,6 +366,121 @@ app.post('/api/admin/usuaris/logout', async (req, res) => {
     }
 });
 
+app.post('/api/admin/usuaris/register', async (req, res) => {
+    // 1. Extraemos los campos exactos de tu modelo
+    const { nickname, email, telephone, password, role } = req.body;
+
+    // Validaciones básicas
+    if (!nickname || !password) {
+        return res.status(400).json({
+            status: "Error",
+            message: "El nickname y la password son obligatorios"
+        });
+    }
+
+    try {
+        // 2. Verificar duplicados (Email o Nickname)
+        const existingUser = await user.findOne({ 
+            where: { 
+                [sequelize.Sequelize.Op.or]: [
+                    { nickname: nickname },
+                    { email: email || '' } 
+                ] 
+            } 
+        });
+
+        if (existingUser) {
+            return res.status(400).json({
+                status: "Error",
+                message: "El nickname o el email ya están registrados."
+            });
+        }
+
+        // 3. Hashear la contraseña por seguridad
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 4. Crear el registro en la base de datos
+        const newUser = await user.create({
+            nickname,
+            email,
+            telephone, 
+            password: hashedPassword,
+            role: role || 'normal' 
+        });
+
+        res.status(201).json({
+            status: "OK",
+            message: "Usuario creado exitosamente",
+            data: {
+                id: newUser.id,
+                nickname: newUser.nickname,
+                role: newUser.role
+            }
+        });
+
+    } catch (error) {
+        logger.error('Error al registrar usuario:', error);
+        res.status(500).json({
+            status: "Error",
+            message: "Error interno al procesar el registro"
+        });
+    }
+});
+
+app.get('/api/admin/estadistiques/etiquetes', authenticateToken, async (req, res) => {
+    // Verificamos que el usuario tenga rol de administrador 
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({
+            status: "ERROR",
+            message: "Accés denegat: es requereixen permisos d'administrador",
+            data: null
+        });
+    }
+
+    try {
+        // 1. Obtenemos solo la columna 'tags' de la tabla imgs usando el modelo
+        const images = await img.findAll({
+            attributes: ['tags']
+        });
+
+        const tagCounts = {};
+
+        // 2. Procesamos los strings (vienen como "tag1, tag2")
+        images.forEach(record => {
+            if (record.tags) {
+                const tagsArray = record.tags.split(',').map(t => t.trim());
+                
+                tagsArray.forEach(tag => {
+                    if (tag.length > 0) {
+                        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                    }
+                });
+            }
+        });
+
+        // 3. Convertimos el objeto a una lista de objetos [{name, count}]
+        const data = Object.keys(tagCounts).map(tagName => ({
+            name: tagName,
+            count: tagCounts[tagName]
+        }));
+
+        // 4. Ordenamos de mayor a menor frecuencia
+        data.sort((a, b) => b.count - a.count);
+
+        res.json({
+            status: "OK",
+            data: data
+        });
+        
+    } catch (error) {
+        logger.error('Error obtenint estadístiques:', error);
+        res.status(500).json({ 
+            status: "ERROR", 
+            message: "Error interno del servidor al procesar etiquetas" 
+        });
+    }
+});
+
 // Activar el servidor
 const httpServer = app.listen(port, appListen)
 function appListen () {
