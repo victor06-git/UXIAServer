@@ -84,7 +84,7 @@ async function checkDb() {
 async function startApp() {
     try {
         // 2. Sincronizamos ANTES de que el servidor acepte peticiones
-        await sequelize.sync({force: true}); 
+        await sequelize.sync({alter: true}); 
         logger.info('Tablas verificadas/creadas correctamente');
 
         // 3. Ahora que las tablas existen, encendemos el servidor
@@ -423,6 +423,76 @@ app.post('/api/admin/usuaris/register', async (req, res) => {
         res.status(500).json({
             status: "Error",
             message: "Error interno al procesar el registro"
+        });
+    }
+});
+
+// Endpoint para obtener todos los usuarios
+app.get('/api/admin/usuaris', authenticateToken, async (req, res) => {
+    // Verificamos que el usuario tenga rol de administrador 
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({
+            status: "ERROR",
+            message: "Accés denegat: es requereixen permisos d'administrador",
+            data: null
+        });
+    }
+
+    try {
+        const users = await user.findAll({
+            attributes: ['id', 'nickname', 'email', 'telephone', 'role']
+        });
+
+        res.json({
+            status: "OK",
+            data: users
+        });
+        
+    } catch (error) {
+        logger.error('Error obtenint usuaris:', error);
+        res.status(500).json({ 
+            status: "ERROR", 
+            message: "Error interno del servidor al obtener usuarios" 
+        });
+    }
+});
+
+// Endpoint para eliminar un usuario por ID
+app.delete('/api/admin/usuaris/:id', authenticateToken, async (req, res) => {
+    // Verificamos que el usuario tenga rol de administrador
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({
+            status: "ERROR",
+            message: "Accés denegat: es requereixen permisos d'administrador",
+            data: null
+        });
+    }
+
+    const userId = req.params.id;
+
+    try {
+        const userToDelete = await user.findByPk(userId);
+
+        if (!userToDelete) {
+            return res.status(404).json({
+                status: "ERROR",
+                message: "Usuario no encontrado",
+                data: null
+            });
+        }
+
+        await userToDelete.destroy();
+
+        res.json({
+            status: "OK",
+            message: "Usuario eliminado exitosamente"
+        });
+        
+    } catch (error) {
+        logger.error('Error eliminant usuari:', error);
+        res.status(500).json({ 
+            status: "ERROR", 
+            message: "Error interno del servidor al eliminar usuario" 
         });
     }
 });
